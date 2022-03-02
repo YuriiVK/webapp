@@ -20,4 +20,6 @@ aws cloudformation create-stack --stack-name $AppName \
              ParameterKey=NodesCount,ParameterValue=$NodesCount \
 --capabilities CAPABILITY_IAM --template-body file://webapp.yaml
 ```
-4. SSHAllow - Your external IP that allowed to ssh to instances
+ SSHAllow - Your external IP that allowed to ssh to instances
+ By default it will be t2.micro with maximal spot price 0.004$
+ Works for region eu-central-1 and us-east-1, it's easy extendable.
