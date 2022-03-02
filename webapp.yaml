@@ -28,6 +28,9 @@ Parameters:
   AppName:
     Type: String
     Default: 'WebAPP'
+  NodesCount:
+    Type: String
+    Default: '5'
   MaxSpot:
     Type: String
     Default: '0.004'
@@ -57,9 +60,9 @@ Resources:
       HealthCheckType: EC2
       HealthCheckGracePeriod: 300
       LaunchConfigurationName: !Ref LaunchConfig
-      DesiredCapacity: 5
-      MinSize: 5
-      MaxSize: 10
+      DesiredCapacity: !Ref NodesCount
+      MinSize: 1
+      MaxSize: 50
       TerminationPolicies:
       - OldestInstance
       Tags:
