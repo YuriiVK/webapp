@@ -14,7 +14,7 @@ Parameters:
       - t2.small
       - t2.medium
     ConstraintDescription: must be a valid EC2 instance type.
-  SSHLocation:
+  SSHAllow:
     Description: ' The IP address range that can be used to SSH to the EC2 instances'
     Type: String
     MinLength: '9'
@@ -62,7 +62,7 @@ Resources:
       LaunchConfigurationName: !Ref LaunchConfig
       DesiredCapacity: !Ref NodesCount
       MinSize: 1
-      MaxSize: 50
+      MaxSize: 100
       TerminationPolicies:
       - OldestInstance
       Tags:
@@ -131,10 +131,10 @@ Resources:
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: Enable HTTP access via port 80
+      GroupDescription: Enable SSH access only for allowed IP
       VpcId: !Ref VPC
       SecurityGroupIngress:
-      - {IpProtocol: tcp, FromPort: '22', ToPort: '22', CidrIp: !Ref SSHLocation}
+      - {IpProtocol: tcp, FromPort: '22', ToPort: '22', CidrIp: !Ref SSHAllow}
 
   InstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
