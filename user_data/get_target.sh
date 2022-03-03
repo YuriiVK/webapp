@@ -29,3 +29,4 @@ aws ssm put-parameter --name "/$PREFIX/targets" --overwrite --region $REGION --v
 aws ssm put-parameter --name "/$PREFIX/sem" --overwrite --region $REGION --value "available"
 #set environment variable TARGET
 echo TARGET=$TARGET>>/etc/environment
+export TARGET=$TARGET
