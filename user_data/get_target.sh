@@ -1,3 +1,4 @@
+#!/bin/bash
 REGION=$(hostname | awk -F. '{print $2}')
 PREFIX=$1 #prefix for parameters
 #generate rendom for timeouts, up to 10 sec
