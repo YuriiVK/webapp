@@ -104,8 +104,8 @@ Resources:
             # Send OK signal to the CloudFormation stack
             /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASGWebAPP
             # get and run user_data scripts
-            cd /opt
-            git clone https://github.com/YuriiVK/webapp.git && ./webapp/user_data/get_target.sh
+            cd /root
+            git clone https://github.com/YuriiVK/webapp.git && ./webapp/user_data/get_target.sh ${SSMPrefix}
             ########################################################################
             #Put your commands here                                                #
             #A variable $TARGET have one of string from /dns/targets SSM parameter #
