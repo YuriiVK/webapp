@@ -25,6 +25,10 @@ Parameters:
   VPC:
     Type: String
     Default: 'vpc-806900eb'
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for ASG
+    Default: 'subnet-34760379, subnet-80bd9beb, subnet-b5811ec8'
   AppName:
     Type: String
     Default: 'WebAPP'
@@ -56,10 +60,7 @@ Resources:
   ASGWebAPP:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
-      VPCZoneIdentifier:
-        - 'subnet-34760379'
-        - 'subnet-80bd9beb'
-        - 'subnet-b5811ec8'
+      VPCZoneIdentifier: !Ref SubnetIds
       HealthCheckType: EC2
       HealthCheckGracePeriod: 300
       LaunchConfigurationName: !Ref LaunchConfig
