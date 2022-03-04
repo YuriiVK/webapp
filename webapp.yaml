@@ -106,6 +106,7 @@ Resources:
             # get and run user_data scripts
             cd /root
             git clone https://github.com/YuriiVK/webapp.git && ./webapp/user_data/get_target.sh ${SSMPrefix}
+            export $(cat /etc/environment) #export all variables for using it later
             ########################################################################
             #Put your commands here                                                #
             #A variable $TARGET have one of string from /dns/targets SSM parameter #
