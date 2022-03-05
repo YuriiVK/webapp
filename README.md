@@ -1,11 +1,15 @@
 # webapp
 
 Allow to run spot nodes as much as you want, controlled by autoscaling
-1. Change subnets to correct value
-   https://github.com/YuriiVK/webapp/blob/main/webapp.yaml#L54-L56
-2. Put instruction to run on each node
-   https://github.com/YuriiVK/webapp/blob/main/webapp.yaml#L103-L106
-3. Set parameters actual for you and deploy stack
+1. Set parameters actual for your VPC
+2. Create SSM paameter store string not secure variables with names:
+  /dns/sem       value "available"
+  /dns/targets   each string is a target IP/DNS. A node will pick one of target
+                 and set $TARGET variable in user_data script. You can use $TARGET
+                 in your code here https://github.com/YuriiVK/webapp/blob/main/webapp.yaml#L125-L128
+3. Put instruction you wish to run on each node
+    https://github.com/YuriiVK/webapp/blob/main/webapp.yaml#L125-L128
+4. Deploy stack
 ```
 KeyName=lenovo
 SSHAllow='90.230.54.217/32'
@@ -24,6 +28,9 @@ aws cloudformation create-stack --stack-name $AppName \
              ParameterKey=SSMPrefix,ParameterValue=$SSMPrefix \
 --capabilities CAPABILITY_IAM --template-body file://webapp.yaml
 ```
- SSHAllow - Your external IP that allowed to ssh to instances
- By default it will be t2.micro with maximal spot price 0.004$
- Works for region eu-central-1 and us-east-1, it's easy extendable.
+
+Available regions: eu-central-1/us-east-1/eu-west-1/us-west-2/eu-west-3/us-north-1/ca-central-1:
+
+SSHAllow - Your external IP that allowed to ssh to instances
+By default it will be t2.micro with maximal spot price 0.004$
+SSMPrefix - Prefix for SSM parameters by default - dns
